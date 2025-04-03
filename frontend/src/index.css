@@ -1,0 +1,22 @@
+:root {
+  --primary-color: #4a90e2; /* Новый цвет, будет обновлён */
+  --secondary-color: #50c878; /* Новый цвет, будет обновлён */
+  --background-dark: #1a2a44; /* Обновим */
+  --background-gradient: linear-gradient(135deg, #1a2a44 0%, #2a3b5a 50%, #3b6db0 100%); /* Обновим */
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  overflow-x: hidden;
+  font-family: 'Roboto', sans-serif; /* Базовый шрифт для текста */
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Poppins', sans-serif; /* Шрифт для заголовков */
+}
