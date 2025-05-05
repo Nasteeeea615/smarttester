@@ -3,7 +3,6 @@ const router = express.Router();
 const pool = require('../db');
 const jwt = require('jsonwebtoken');
 
-// Middleware для проверки токена
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -16,8 +15,8 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
-// Получение всех классов
-router.get('/', authenticateToken, async (req, res) => {
+// Получение всех классов (без авторизации)
+router.get('/', async (req, res) => {
   try {
     const classes = await pool.query('SELECT * FROM classes');
     res.json(classes.rows);

@@ -30,31 +30,37 @@ function Login() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setError(''); // Сбрасываем ошибку перед новым запросом
+    setError('');
+  
     try {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({ email, password }),
       });
-
+  
       const data = await response.json();
-      if (response.ok) {
-        localStorage.setItem('token', data.token);
-        toast.success('Вход успешен!');
-        if (data.role === 'teacher') {
-          navigate('/teacher');
-        } else if (data.role === 'student') {
-          navigate('/student');
-        } else if (data.role === 'parent') {
-          navigate('/parent');
-        }
-      } else {
-        setError(data.message || 'Ошибка входа');
+  
+      if (!response.ok) {
+        throw new Error(data.message || 'Ошибка входа');
+      }
+  
+      console.log('Полученный токен:', data.token); // Отладка
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('role', data.role);
+  
+      if (data.role === 'teacher') {
+        navigate('/teacher');
+      } else if (data.role === 'student') {
+        navigate('/student');
+      } else if (data.role === 'parent') {
+        navigate('/parent');
       }
     } catch (err) {
-      setError('Не удалось подключиться к серверу. Проверьте, запущен ли бэкенд.');
       console.error('Ошибка при входе:', err);
+      setError(err.message);
     }
   };
 

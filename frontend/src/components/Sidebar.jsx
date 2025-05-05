@@ -1,99 +1,88 @@
-import { Box, List, ListItem, ListItemIcon, ListItemText, Divider, Typography } from '@mui/material';
+import { Box, Typography, List, ListItem, ListItemText, Button } from '@mui/material';
 import { styled } from '@mui/system';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { MdDashboard, MdCreate, MdAssignment, MdPeople, MdLogout } from 'react-icons/md';
+import { useNavigate } from 'react-router-dom';
 
 const SidebarContainer = styled(Box)(({ theme }) => ({
   width: 250,
   height: '100vh',
-  backgroundColor: '#1a2a44',
+  background: '#1a237e', // Тёмно-синий цвет
   color: '#ffffff',
   position: 'fixed',
   top: 0,
   left: 0,
+  padding: theme.spacing(2),
   display: 'flex',
   flexDirection: 'column',
-  paddingTop: theme.spacing(2),
+  justifyContent: 'space-between',
 }));
 
-const SidebarItem = styled(ListItem)(({ theme, active }) => ({
-  padding: theme.spacing(1.5, 2),
-  backgroundColor: active ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
+const LogoutButton = styled(Button)(({ theme }) => ({
+  color: '#ffffff',
+  borderColor: '#ffffff',
   '&:hover': {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: '#3f51b5', // Чуть светлее тёмно-синего при наведении
+    borderColor: '#ffffff',
   },
-  cursor: 'pointer',
 }));
 
 function Sidebar({ role }) {
   const navigate = useNavigate();
-  const location = useLocation();
-
-  if (!role || !['teacher', 'student', 'parent'].includes(role)) {
-    console.error(`Invalid role: ${role}`);
-    return (
-      <SidebarContainer>
-        <Box p={2}>
-          <Typography variant="h6" fontWeight={700}>
-            SmartTester
-          </Typography>
-        </Box>
-        <Divider sx={{ backgroundColor: 'rgba(255, 255, 255, 0.2)' }} />
-        <Typography color="error" p={2}>
-          Ошибка: Роль не указана или некорректна
-        </Typography>
-      </SidebarContainer>
-    );
-  }
 
   const teacherItems = [
-    { text: 'Мои тесты', icon: <MdDashboard />, path: '/teacher' },
-    { text: 'Создать тест', icon: <MdCreate />, path: '/teacher/create' },
+    { text: 'Мои тесты', path: '/teacher' },
+    { text: 'Создание тестов', path: '/teacher/create' },
   ];
 
   const studentItems = [
-    { text: 'Мои тесты', icon: <MdAssignment />, path: '/student' },
+    { text: 'Доступные тесты', path: '/teacher' },
   ];
 
   const parentItems = [
-    { text: 'Результаты детей', icon: <MdPeople />, path: '/parent' },
+    { text: 'Результаты детей', path: '/parent' },
   ];
 
   const items = role === 'teacher' ? teacherItems : role === 'student' ? studentItems : parentItems;
 
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    navigate('/');
+  };
+
   return (
     <SidebarContainer>
-      <Box p={2}>
-        <Typography variant="h6" fontWeight={700}>
+      <Box>
+        <Typography variant="h6" fontWeight={700} mb={3}>
           SmartTester
         </Typography>
+        <List>
+          {items.map((item) => (
+            <ListItem
+              button
+              key={item.text}
+              onClick={() => navigate(item.path)}
+              sx={{
+                borderRadius: '5px',
+                mb: 1,
+                '&:hover': { background: '#3f51b5' }, // Чуть светлее тёмно-синего при наведении
+              }}
+            >
+              <ListItemText primary={item.text} />
+            </ListItem>
+          ))}
+        </List>
       </Box>
-      <Divider sx={{ backgroundColor: 'rgba(255, 255, 255, 0.2)' }} />
-      <List>
-        {items.map((item) => (
-          <SidebarItem
-            key={item.text}
-            active={location.pathname === item.path}
-            onClick={() => navigate(item.path)}
-          >
-            <ListItemIcon sx={{ color: '#ffffff', minWidth: 40 }}>{item.icon}</ListItemIcon>
-            <ListItemText primary={item.text} />
-          </SidebarItem>
-        ))}
-      </List>
-      <Box flexGrow={1} />
-      <Divider sx={{ backgroundColor: 'rgba(255, 255, 255, 0.2)' }} />
-      <SidebarItem
-        onClick={() => {
-          localStorage.removeItem('token');
-          navigate('/');
-        }}
-      >
-        <ListItemIcon sx={{ color: '#ffffff', minWidth: 40 }}>
-          <MdLogout />
-        </ListItemIcon>
-        <ListItemText primary="Выйти" />
-      </SidebarItem>
+      <Box>
+        <Typography variant="body2" align="center" mb={2}>
+          Роль: {role === 'teacher' ? 'Учитель' : role === 'student' ? 'Ученик' : 'Родитель'}
+        </Typography>
+        <LogoutButton
+          variant="outlined"
+          fullWidth
+          onClick={handleLogout}
+        >
+          Выйти
+        </LogoutButton>
+      </Box>
     </SidebarContainer>
   );
 }

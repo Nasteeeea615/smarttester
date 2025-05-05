@@ -1,4 +1,6 @@
 const express = require('express');
+require('dotenv').config(); // Добавляем загрузку .env
+
 const app = express();
 const pool = require('./db');
 const authRoutes = require('./routes/auth');
