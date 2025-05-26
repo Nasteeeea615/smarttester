@@ -15,11 +15,16 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
-    "@mui/material": "^5.16.7",
+    "@google/genai": "^1.0.1",
+    "@mui/icons-material": "^5.17.1",
+    "@mui/material": "^5.17.1",
     "@mui/system": "^5.16.7",
     "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
+    "multer": "^1.4.5-lts.2",
+    "pg": "^8.16.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-dropzone": "^14.2.3",
@@ -28,7 +33,15 @@
     "react-toastify": "^10.0.6"
   },
   "devDependencies": {
-    "vite": "^5.4.8",
-    "@vitejs/plugin-react": "^4.3.2"
-  }
+    "@vitejs/plugin-react": "^4.3.2",
+    "vite": "^5.4.8"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Nasteeeea615/smarttester.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Nasteeeea615/smarttester/issues"
+  },
+  "homepage": "https://github.com/Nasteeeea615/smarttester#readme"
 }

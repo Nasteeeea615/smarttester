@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -9,16 +9,22 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  CircularProgress,
 } from '@mui/material';
 import { styled } from '@mui/system';
 import { toast } from 'react-toastify';
 import Sidebar from './Sidebar';
 
-const RegisterContainer = styled(Box)(({ theme }) => ({
+const RegisterContainer = styled(Box)(({ theme, isSidebarOpen }) => ({
   minHeight: '100vh',
   background: '#f5f7fa',
-  marginLeft: 250,
+  marginLeft: isSidebarOpen ? 250 : 0,
   padding: theme.spacing(4),
+  transition: 'margin-left 0.3s ease-in-out',
+  [theme.breakpoints.down('sm')]: {
+    marginLeft: isSidebarOpen ? 200 : 0,
+    padding: theme.spacing(2),
+  },
 }));
 
 const FormBox = styled(Box)(({ theme }) => ({
@@ -39,30 +45,57 @@ function RegisterStudent() {
   const [classId, setClassId] = useState('');
   const [classes, setClasses] = useState([]);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const token = localStorage.getItem('token');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      setError('Токен отсутствует. Пожалуйста, войдите заново.');
-      navigate('/login');
+    if (!token) return;
+
+    const controller = new AbortController();
+    setLoading(true);
+
+    const fetchClasses = async () => {
+      try {
+        const response = await fetch('/api/auth/classes', {
+          headers: { Authorization: `Bearer ${token}` },
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error(`Ошибка загрузки классов: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        setClasses(data);
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          console.error('Ошибка загрузки классов:', err);
+          setError('Не удалось загрузить классы: ' + err.message);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchClasses();
+    return () => controller.abort();
+  }, [token]);
+
+  const validateEmail = (email) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+  };
+
+  const handleRegister = useCallback(async () => {
+    if (!name || !email || !password || !classId) {
+      setError('Все поля обязательны для заполнения');
       return;
     }
 
-    fetch('/api/auth/classes', {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((res) => res.json())
-      .then((data) => setClasses(data))
-      .catch((err) => {
-        setError('Не удалось загрузить классы: ' + err.message);
-        console.error(err);
-      });
-  }, [navigate]);
-
-  const handleRegister = async () => {
-    if (!name || !email || !password || !classId) {
-      setError('Все поля обязательны для заполнения');
+    if (!validateEmail(email)) {
+      setError('Введите корректный email');
       return;
     }
 
@@ -78,7 +111,6 @@ function RegisterStudent() {
         throw new Error(userData.message || 'Ошибка регистрации пользователя');
       }
 
-      const token = localStorage.getItem('token');
       const studentResponse = await fetch('/api/auth/students', {
         method: 'POST',
         headers: {
@@ -97,14 +129,26 @@ function RegisterStudent() {
       navigate('/teacher');
     } catch (err) {
       setError('Ошибка регистрации: ' + err.message);
-      console.error(err);
     }
+  }, [name, email, password, classId, token, navigate]);
+
+  const toggleSidebar = () => {
+    setIsSidebarOpen(prev => !prev);
   };
+
+  if (loading) {
+    return (
+      <RegisterContainer isSidebarOpen={isSidebarOpen}>
+        <Sidebar role="teacher" isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
+        <CircularProgress />
+      </RegisterContainer>
+    );
+  }
 
   return (
     <>
-      <Sidebar role="teacher" />
-      <RegisterContainer>
+      <Sidebar role="teacher" isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
+      <RegisterContainer isSidebarOpen={isSidebarOpen}>
         <FormBox>
           <Typography variant="h4" fontWeight={700} mb={3} color="#1a2a44">
             Регистрация ученика
