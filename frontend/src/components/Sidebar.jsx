@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 const SidebarContainer = styled(Box)(({ theme }) => ({
   width: 250,
   height: '100vh',
-  background: '#1a237e', // Тёмно-синий цвет
+  background: '#1a237e',
   color: '#ffffff',
   position: 'fixed',
   top: 0,
@@ -20,7 +20,7 @@ const LogoutButton = styled(Button)(({ theme }) => ({
   color: '#ffffff',
   borderColor: '#ffffff',
   '&:hover': {
-    backgroundColor: '#3f51b5', // Чуть светлее тёмно-синего при наведении
+    backgroundColor: '#3f51b5',
     borderColor: '#ffffff',
   },
 }));
@@ -31,10 +31,12 @@ function Sidebar({ role }) {
   const teacherItems = [
     { text: 'Мои тесты', path: '/teacher' },
     { text: 'Создание тестов', path: '/teacher/create' },
+    { text: 'Зарегистрировать ученика', path: '/teacher/register-student' },
+    { text: 'Зарегистрировать родителя', path: '/teacher/register-parent' },
   ];
 
   const studentItems = [
-    { text: 'Доступные тесты', path: '/teacher' },
+    { text: 'Доступные тесты', path: '/student' },
   ];
 
   const parentItems = [
@@ -63,7 +65,7 @@ function Sidebar({ role }) {
               sx={{
                 borderRadius: '5px',
                 mb: 1,
-                '&:hover': { background: '#3f51b5' }, // Чуть светлее тёмно-синего при наведении
+                '&:hover': { background: '#3f51b5' },
               }}
             >
               <ListItemText primary={item.text} />

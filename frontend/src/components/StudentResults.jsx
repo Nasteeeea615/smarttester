@@ -1,18 +1,18 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Typography, List, ListItem, ListItemText, Button } from '@mui/material';
+import { Box, Typography, List, ListItem, ListItemText } from '@mui/material';
 import { styled } from '@mui/system';
 import Sidebar from './Sidebar';
 
-const DashboardContainer = styled(Box)(({ theme }) => ({
+const ResultsContainer = styled(Box)(({ theme }) => ({
   minHeight: '100vh',
   background: '#f5f7fa',
   marginLeft: 250,
   padding: theme.spacing(4),
 }));
 
-function StudentDashboard() {
-  const [tests, setTests] = useState([]);
+function StudentResults() {
+  const [results, setResults] = useState([]);
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
@@ -24,55 +24,53 @@ function StudentDashboard() {
       return;
     }
 
-    console.log('Запрашиваем тесты с токеном:', token);
-    fetch('/api/tests/student', {
+    console.log('Запрос результатов с токеном:', token.substring(0, 10) + '...');
+    fetch('/api/tests/test-results/student', { // Исправленный URL
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => {
+        console.log('Статус ответа:', res.status);
         if (!res.ok) {
-          throw new Error(`HTTP error! status: ${res.status}`);
+          return res.text().then((text) => {
+            throw new Error(`HTTP error! status: ${res.status}, body: ${text}`);
+          });
         }
         return res.json();
       })
       .then((data) => {
-        console.log('Ответ от сервера:', data);
         if (Array.isArray(data)) {
-          setTests(data);
+          setResults(data);
         } else {
-          setError(data.message || 'Ошибка загрузки тестов');
+          setError(data.message || 'Ошибка загрузки результатов');
         }
       })
       .catch((err) => {
-        console.error('Ошибка при загрузке тестов:', err);
-        setError(`Не удалось загрузить тесты: ${err.message}`);
+        console.error('Ошибка при загрузке результатов:', err);
+        setError('Не удалось загрузить результаты: ' + err.message);
       });
   }, [navigate]);
-
-  const handleTakeTest = (testId) => {
-    navigate(`/student/test/${testId}`);
-  };
 
   return (
     <>
       <Sidebar role="student" />
-      <DashboardContainer>
+      <ResultsContainer>
         <Typography variant="h4" fontWeight={700} mb={3} color="#1a2a44">
-          Доступные тесты
+          Мои результаты
         </Typography>
         {error && (
           <Typography color="error" mb={2}>
             {error}
           </Typography>
         )}
-        {tests.length === 0 && !error ? (
+        {results.length === 0 && !error ? (
           <Typography color="textSecondary">
-            Нет доступных тестов для вашего класса.
+            У вас пока нет результатов.
           </Typography>
         ) : (
           <List>
-            {tests.map((test) => (
+            {results.map((result) => (
               <ListItem
-                key={test.id}
+                key={result.id}
                 sx={{
                   borderRadius: '10px',
                   mb: 1,
@@ -81,28 +79,21 @@ function StudentDashboard() {
                 }}
               >
                 <ListItemText
-                  primary={test.title}
-                  secondary={`Создан: ${new Date(test.created_at).toLocaleDateString()}`}
+                  primary={result.title}
+                  secondary={
+                    result.submitted_at
+                      ? `Оценка: ${result.score}/${result.total_possible_score}, Сдано: ${new Date(result.submitted_at).toLocaleDateString()}`
+                      : `Оценка: ${result.score}/${result.total_possible_score}`
+                  }
                   primaryTypographyProps={{ fontWeight: 500 }}
                 />
-                <Button
-                  variant="contained"
-                  onClick={() => handleTakeTest(test.id)}
-                  sx={{
-                    background: '#4a90e2',
-                    color: '#ffffff',
-                    '&:hover': { background: '#3a80d2' },
-                  }}
-                >
-                  Пройти тест
-                </Button>
               </ListItem>
             ))}
           </List>
         )}
-      </DashboardContainer>
+      </ResultsContainer>
     </>
   );
 }
 
-export default StudentDashboard;
+export default StudentResults;

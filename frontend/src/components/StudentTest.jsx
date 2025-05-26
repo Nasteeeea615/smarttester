@@ -1,18 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import {
-  Box,
-  Typography,
-  Button,
-  Radio,
-  Checkbox,
-  FormControlLabel,
-  FormControl,
-  RadioGroup,
-  FormGroup,
-} from '@mui/material';
+import { Box, Typography, List, ListItem, ListItemText, Button, RadioGroup, Radio, FormControlLabel, Checkbox } from '@mui/material';
 import { styled } from '@mui/system';
-import { toast } from 'react-toastify';
 import Sidebar from './Sidebar';
 
 const TestContainer = styled(Box)(({ theme }) => ({
@@ -22,18 +11,10 @@ const TestContainer = styled(Box)(({ theme }) => ({
   padding: theme.spacing(4),
 }));
 
-const ContentBox = styled(Box)(({ theme }) => ({
-  background: '#ffffff',
-  borderRadius: '15px',
-  padding: theme.spacing(4),
-  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
-}));
-
 function StudentTest() {
   const { testId } = useParams();
   const navigate = useNavigate();
   const [test, setTest] = useState(null);
-  const [questions, setQuestions] = useState([]);
   const [answers, setAnswers] = useState({});
   const [error, setError] = useState('');
 
@@ -45,130 +26,93 @@ function StudentTest() {
       return;
     }
 
-    // Загрузка теста
-    fetch(`/api/tests/${testId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error(`Ошибка загрузки теста: ${res.status} ${res.statusText}`);
-        }
-        return res.json();
-      })
-      .then((data) => {
-        setTest(data);
-      })
-      .catch((err) => {
-        console.error('Ошибка при загрузке теста:', err);
-        setError('Не удалось загрузить тест: ' + err.message);
-      });
-
-    // Загрузка вопросов
-    fetch(`/api/tests/${testId}/questions`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error(`Ошибка загрузки вопросов: ${res.status} ${res.statusText}`);
-        }
-        return res.json();
-      })
-      .then((data) => {
-        setQuestions(data);
-        // Инициализация ответов
-        const initialAnswers = {};
-        data.forEach((q) => {
-          initialAnswers[q.id] = q.type === 'single' ? '' : [];
-        });
-        setAnswers(initialAnswers);
-      })
-      .catch((err) => {
-        console.error('Ошибка при загрузке вопросов:', err);
-        setError('Не удалось загрузить вопросы: ' + err.message);
-      });
-  }, [testId, navigate]);
-
-  const handleAnswerChange = (questionId, value, checked) => {
-    setAnswers((prev) => {
-      const newAnswers = { ...prev };
-      const question = questions.find((q) => q.id === questionId);
-      if (question.type === 'single') {
-        newAnswers[questionId] = value;
-      } else {
-        if (checked) {
-          newAnswers[questionId] = [...newAnswers[questionId], value];
-        } else {
-          newAnswers[questionId] = newAnswers[questionId].filter((ans) => ans !== value);
-        }
-      }
-      return newAnswers;
-    });
-  };
-
-  const submitTest = async () => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      setError('Токен отсутствует. Пожалуйста, войдите заново.');
+    try {
+      const decoded = JSON.parse(atob(token.split('.')[1]));
+      console.log('Декодированный токен:', decoded);
+    } catch (err) {
+      console.error('Ошибка декодирования токена:', err);
+      setError('Неверный токен. Пожалуйста, войдите заново.');
       navigate('/login');
       return;
     }
 
-    // Проверка, что все вопросы имеют ответы
-    for (const question of questions) {
-      if (
-        (question.type === 'single' && !answers[question.id]) ||
-        (question.type === 'multiple' && answers[question.id].length === 0)
-      ) {
-        setError('Пожалуйста, ответьте на все вопросы.');
-        return;
-      }
-    }
-
-    try {
-      const response = await fetch(`/api/tests/${testId}/submit`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ answers }),
+    console.log('Запрашиваем тест с ID:', testId);
+    fetch(`/api/tests/${testId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        return res.json();
+      })
+      .then((data) => {
+        console.log('Ответ от сервера:', data);
+        setTest(data);
+      })
+      .catch((err) => {
+        console.error('Ошибка при загрузке теста:', err);
+        setError(`Не удалось загрузить тест: ${err.message}`);
       });
+  }, [testId, navigate]);
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || `HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      toast.success('Тест успешно отправлен!');
-      navigate('/student');
-    } catch (err) {
-      setError('Ошибка при отправке теста: ' + err.message);
-      console.error(err);
-    }
+  const handleAnswerChange = (questionId, value) => {
+    setAnswers((prev) => ({
+      ...prev,
+      [questionId]: value,
+    }));
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    navigate('/');
+  const handleSubmit = () => {
+    const token = localStorage.getItem('token');
+    console.log('Отправляемые ответы:', answers);
+
+    if (Object.keys(answers).length === 0) {
+      setError('Пожалуйста, выберите хотя бы один ответ.');
+      return;
+    }
+
+    fetch(`/api/tests/${testId}/submit`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ answers }),
+    })
+      .then((res) => {
+        if (!res.ok) {
+          return res.json().then((errorData) => {
+            if (res.status === 400 && errorData.message === 'Тест уже был сдан') {
+              setError('Тест уже сдан. Перейдите к результатам.');
+              setTimeout(() => navigate('/student/results'), 2000); // Перенаправление через 2 секунды
+            } else {
+              throw new Error(`HTTP error! status: ${res.status}, message: ${errorData.message || 'Неизвестная ошибка'}`);
+            }
+          });
+        }
+        return res.json();
+      })
+      .then((data) => {
+        console.log('Результат отправки:', data);
+        navigate('/student/results');
+      })
+      .catch((err) => {
+        console.error('Ошибка при отправке теста:', err);
+        setError(`Не удалось отправить тест: ${err.message}`);
+      });
   };
 
   if (error) {
     return (
       <TestContainer>
-        <ContentBox>
-          <Typography color="error">{error}</Typography>
-        </ContentBox>
+        <Typography color="error">{error}</Typography>
       </TestContainer>
     );
   }
 
-  if (!test || questions.length === 0) {
+  if (!test) {
     return (
       <TestContainer>
-        <ContentBox>
-          <Typography>Загрузка...</Typography>
-        </ContentBox>
+        <Typography>Загрузка теста...</Typography>
       </TestContainer>
     );
   }
@@ -177,93 +121,59 @@ function StudentTest() {
     <>
       <Sidebar role="student" />
       <TestContainer>
-        <ContentBox>
-          <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-            <Typography variant="h5" fontWeight={700}>
-              Тест: {test.title}
-            </Typography>
-            <Button
-              variant="outlined"
-              onClick={handleLogout}
-              sx={{ color: '#4a90e2', borderColor: '#4a90e2' }}
-            >
-              Выйти
-            </Button>
-          </Box>
-          {questions.map((question, index) => (
-            <Box key={question.id} mb={4}>
-              {question.image_url && (
-                <Box mb={2}>
-                  <img
-                    src={question.image_url}
-                    alt="Question"
-                    style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: '5px' }}
-                  />
-                </Box>
-              )}
-              <Typography variant="body1" fontWeight={500}>
-                {index + 1}. {question.question_text}
-              </Typography>
+        <Typography variant="h4" fontWeight={700} mb={3} color="#1a2a44">
+          Тест: {test.title}
+        </Typography>
+        <List>
+          {test.questions.map((question) => (
+            <ListItem key={question.id} sx={{ mb: 2, background: '#fff', borderRadius: 2, p: 2 }}>
+              <ListItemText
+                primary={question.question_text}
+                secondary={question.image_url && <img src={question.image_url} alt="Question" style={{ maxWidth: '100%' }} />}
+              />
               {question.type === 'single' ? (
-                <FormControl component="fieldset" sx={{ mt: 1 }}>
-                  <RadioGroup
-                    value={answers[question.id] || ''}
-                    onChange={(e) => handleAnswerChange(question.id, e.target.value)}
-                  >
-                    {question.options.map((option, optIndex) => (
-                      <FormControlLabel
-                        key={optIndex}
-                        value={option}
-                        control={<Radio />}
-                        label={option}
-                      />
-                    ))}
-                  </RadioGroup>
-                </FormControl>
-              ) : (
-                <FormGroup sx={{ mt: 1 }}>
-                  {question.options.map((option, optIndex) => (
+                <RadioGroup
+                  value={answers[question.id] || ''}
+                  onChange={(e) => handleAnswerChange(question.id, e.target.value)}
+                >
+                  {(question.options || []).map((option, index) => (
                     <FormControlLabel
-                      key={optIndex}
-                      control={
-                        <Checkbox
-                          checked={answers[question.id]?.includes(option) || false}
-                          onChange={(e) =>
-                            handleAnswerChange(question.id, option, e.target.checked)
-                          }
-                        />
-                      }
+                      key={index}
+                      value={option}
+                      control={<Radio />}
                       label={option}
                     />
                   ))}
-                </FormGroup>
-              )}
-            </Box>
+                </RadioGroup>
+              ) : question.type === 'multiple' ? (
+                (question.options || []).map((option, index) => (
+                  <FormControlLabel
+                    key={index}
+                    control={
+                      <Checkbox
+                        checked={answers[question.id]?.includes(option) || false}
+                        onChange={(e) =>
+                          handleAnswerChange(question.id, e.target.checked
+                            ? [...(answers[question.id] || []), option]
+                            : (answers[question.id] || []).filter((a) => a !== option)
+                          )
+                        }
+                      />
+                    }
+                    label={option}
+                  />
+                ))
+              ) : null}
+            </ListItem>
           ))}
-          <Button
-            variant="contained"
-            onClick={submitTest}
-            sx={{
-              background: '#4a90e2',
-              color: '#ffffff',
-              fontWeight: 700,
-              padding: '10px 20px',
-              borderRadius: '10px',
-              boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
-              '&:hover': {
-                background: '#3a80d2',
-                boxShadow: '0 6px 20px rgba(0, 229, 255, 0.3)',
-              },
-            }}
-          >
-            Отправить тест
-          </Button>
-          {error && (
-            <Typography color="error" mt={2}>
-              {error}
-            </Typography>
-          )}
-        </ContentBox>
+        </List>
+        <Button
+          variant="contained"
+          onClick={handleSubmit}
+          sx={{ mt: 2, background: '#4a90e2', color: '#fff', '&:hover': { background: '#3a80d2' } }}
+        >
+          Завершить тест
+        </Button>
       </TestContainer>
     </>
   );
